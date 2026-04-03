@@ -1,0 +1,4 @@
+# Placeholder image for the example api service (not intended to run a real app).
+FROM alpine:3.20
+RUN echo '#!/bin/sh' > /entry.sh && echo 'sleep infinity' >> /entry.sh && chmod +x /entry.sh
+CMD ["/entry.sh"]

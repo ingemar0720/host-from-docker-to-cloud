@@ -1,0 +1,7 @@
+# Optional overrides for classification (auto | public | private per service).
+services:
+  api:
+    sourcing: public
+ecr:
+  registry: ""
+  repository_prefix: ""
