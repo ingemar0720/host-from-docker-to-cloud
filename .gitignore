@@ -1,5 +1,7 @@
 /bin/
 /dist/
+/work/zeabur.generated.yaml
+/examples/zeabur.generated.yaml
 *.exe
 .DS_Store
 .env

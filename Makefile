@@ -8,7 +8,7 @@ GO        ?= go
 RENDER_OUT ?= $(WORK_DIR)/zeabur.generated.yaml
 ZEABUR_DEPLOY_BRANCH ?= main
 
-.PHONY: all build check analyze render test validate compose-up compose-down clone build-private push-ecr deploy
+.PHONY: all build check analyze render test validate compose-up compose-down clone build-private push-ecr deploy-ready deploy
 
 all: build
 
@@ -57,6 +57,10 @@ push-ecr:
 	@test -n "$(AWS_REGION)" || (echo "Set AWS_REGION"; exit 1)
 	@test -n "$(ECR_REGISTRY)" || (echo "Set ECR_REGISTRY"; exit 1)
 	aws ecr get-login-password --region "$(AWS_REGION)" | docker login --username AWS --password-stdin "$(ECR_REGISTRY)"
+
+deploy-ready: validate check analyze render
+	@echo "Local pre-deploy checks passed."
+	@echo "Push to branch '$(ZEABUR_DEPLOY_BRANCH)' to trigger Zeabur deploy."
 
 deploy:
 	@echo "Zeabur deploy mode: GitHub Integration (push-to-deploy)."
