@@ -8,7 +8,7 @@ The command-line tool is **`d2z`**: short for **Docker (Compose) → Zeabur**. T
 
 ## Requirements
 
-- Go **1.22+** (to build)
+- Go **1.25+** (to build)
 - **Docker** + **docker compose** for `make check` and local stack targets
 - Compose files should define a top-level **`name:`** (or set `COMPOSE_PROJECT_NAME` in the environment) so compose-go can load the project
 
