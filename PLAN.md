@@ -1,6 +1,6 @@
 # Host from Docker Compose to Zeabur — Project Plan
 
-This document is the authoritative plan for tooling that clones a GitHub repository, reads its Docker Compose file, validates and tests locally, and deploys workloads to **Zeabur** (k3s-backed). It supports **public / open-image** flows and **private** flows via **AWS ECR**.
+This document is the authoritative plan for tooling that clones a GitHub repository, reads its Docker Compose file, validates and tests locally, and deploys workloads to **Zeabur** (k3s-backed). The design supports **public / open-image** flows and **private** flows via **AWS ECR**, but the current execution scope focuses on **GitHub Integration push-to-deploy** with ECR deferred.
 
 ---
 
@@ -11,8 +11,8 @@ This document is the authoritative plan for tooling that clones a GitHub reposit
 | **Ingest** | Clone or update a Git repo; discover `docker-compose.yml` (and optional overrides). |
 | **Validate** | Run prerequisite checks and Compose sanity after clone. |
 | **Local parity** | Run tests and `docker compose` via **Makefile** targets. |
-| **Classify** | Per service: public image / build from Dockerfile / Helm chart (optional) / private → ECR. |
-| **Deploy** | Produce Zeabur-compatible definitions and deploy (CLI, API, or template workflow — finalized in Phase 0). |
+| **Classify** | Per service: public image / build from Dockerfile / Helm chart (optional). Private/ECR remains a deferred path. |
+| **Deploy** | Produce Zeabur-compatible definitions and deploy via **GitHub Integration** (push-to-deploy, finalized in Phase 0). |
 | **Dependencies** | Use Compose **`depends_on`** and **`healthcheck`** for deployment ordering and readiness (see §6). |
 
 Non-goals for v1 (unless reprioritized): full Swarm `deploy:` semantics, every Compose extension field, automatic license/OSI “open source” detection (use heuristics + overrides; see §5).
@@ -43,7 +43,7 @@ Non-goals for v1 (unless reprioritized): full Swarm `deploy:` semantics, every C
 
 | Component | Responsibility |
 |-----------|----------------|
-| **Makefile** | `check`, `test`, `compose-*`, `analyze`, `render`, `build-private`, `push-ecr`, `deploy`. |
+| **Makefile** | `check`, `test`, `compose-*`, `analyze`, `render`, `deploy` (with `build-private`/`push-ecr` kept as deferred targets). |
 | **Compose parser** | Parse v2/v3 Compose; normalize services, networks, volumes, `build`, `image`, env, secrets. |
 | **Classifier** | Decide public-image vs build vs private/ECR (rules + override file). |
 | **Dependency planner** | DAG from `depends_on`; readiness from `healthcheck` and `condition: service_healthy`. |
@@ -68,7 +68,8 @@ Variables (examples): `REPO_URL`, `WORK_DIR`, `AWS_REGION`, `ECR_REGISTRY`, `ZEA
 | `make push-ecr` | Push to ECR. |
 | `make deploy` | Deploy to Zeabur (mechanism from Phase 0 spike). |
 
-Implementation order: `check` → `analyze` → `render` → ECR path → `deploy`.
+Implementation order (current scope): `check` → `analyze` → `render` → `deploy` (GitHub Integration).  
+Deferred follow-up: ECR private path.
 
 ---
 
@@ -77,7 +78,7 @@ Implementation order: `check` → `analyze` → `render` → ECR path → `deplo
 After clone, before heavy work:
 
 - **Binaries:** `git`, `docker`, `docker compose`, `make`; optional `helm`, `aws`, Zeabur CLI.
-- **Auth:** Git (SSH/HTTPS), AWS credential for ECR, Zeabur token/API key if applicable.
+- **Auth:** Git (SSH/HTTPS), Zeabur + GitHub integration access. AWS credential for ECR is only required when enabling the deferred private path.
 - **Files:** `docker-compose.yml` (or `COMPOSE_FILE`) readable; optional `.env.example` if required by policy.
 - **Compose:** Valid YAML; detect unsupported features (documented matrix); **detect cycles in `depends_on`** and fail fast.
 
@@ -138,7 +139,7 @@ Zeabur runs on k3s; pods do not implement Compose `depends_on` natively. The too
 1. **Public image:** Map `image`, `ports`, `environment`, volumes (note platform volume semantics).
 2. **Build from Dockerfile:** `docker build` with build args/context from Compose; tag for Zeabur or ECR.
 3. **Helm (optional):** Small catalog mapping common images/services to charts + values; only if Zeabur or ops process accepts it.
-4. **Private:** Build → push **ECR** → reference image in Zeabur; configure **private registry** credentials on Zeabur for pull (**verify ECR pull auth** in Phase 0).
+4. **Private (deferred):** Build → push **ECR** → reference image in Zeabur; configure **private registry** credentials on Zeabur for pull (track as follow-up after GitHub Integration baseline is stable).
 
 ---
 
@@ -209,11 +210,11 @@ Secrets **not** required for a minimal **public-only** path (public repo, public
 
 | Phase | Outcome |
 |-------|---------|
-| **0 — Spike** | Manual deploy on Zeabur: public image, local build, ECR image; document exact steps, health probes, private registry; validate Bitwarden Secrets Manager machine account + project scoping and bootstrap env on Zeabur. |
+| **0 — Spike** | Manual deploy on Zeabur via **GitHub Integration**: public image and local build paths; document exact setup (GitHub App allowlist, branch, watch paths), health probes, and Bitwarden bootstrap options. |
 | **1 — Skeleton** | Repo layout, Makefile scaffold, `check`, parser + `analyze` (DAG + health summary). |
 | **2 — Local** | `compose-up`/`down`, `test` delegation. |
 | **3 — Render** | Generate Zeabur YAML/template from normalized model + dependency order. |
-| **4 — Private path** | ECR tag/push; Zeabur pull credentials. |
+| **4 — Private path (deferred)** | ECR tag/push; Zeabur pull credentials. |
 | **5 — Deploy** | `make deploy` wired to chosen Zeabur integration. |
 | **6 — Hardening** | Override file, integration tests, Compose compatibility matrix in `docs/COMPOSE-MATRIX.md` (optional). |
 
@@ -226,7 +227,7 @@ Secrets **not** required for a minimal **public-only** path (public repo, public
 | Compose features unsupported on Zeabur | Maintained compatibility matrix; fail or warn per field. |
 | `depends_on` without health | Document ordering-only semantics; suggest healthchecks. |
 | Helm vs Zeabur native | Defer Helm until spike confirms fit. |
-| ECR + Zeabur auth | Spike in Phase 0; document required Zeabur settings. |
+| ECR + Zeabur auth | Deferred to Phase 4; document required Zeabur settings when private path is enabled. |
 | Bitwarden API unavailable at container start | Retries/backoff; healthchecks; optional CI-sync pattern to Zeabur env as fallback. |
 | Secrets Manager free-tier caps (projects / machine accounts) | Model env boundaries; upgrade or split workloads if limits block. |
 
@@ -234,11 +235,11 @@ Secrets **not** required for a minimal **public-only** path (public repo, public
 
 ## 11. Deliverables checklist
 
-- [x] `PLAN.md` (this document) committed in repo root.
+- [ ] `PLAN.md` (this document) committed in repo root.
 - [ ] Phase 0 spike notes (add `docs/SPIKE-ZEABUR.md` after spike).
-- [x] Makefile + `cmd/d2z` implementing `check`, `analyze`, `render`, `clone` (ECR/deploy stubs in Makefile).
-- [x] Optional: `zeabur.strategy.yaml` example under `examples/`.
-- [x] Bitwarden pointer in `docs/BITWARDEN.md`.
+- [ ] Makefile + minimal CLI or scripts implementing §3 in order.
+- [ ] Optional: `zeabur.strategy.yaml` schema and examples.
+- [ ] Document Bitwarden SM project layout + machine account naming (`docs/BITWARDEN.md` optional).
 
 ---
 
@@ -249,3 +250,4 @@ Secrets **not** required for a minimal **public-only** path (public repo, public
 | 2026-04-02 | Initial plan; dependency policy uses `depends_on` + `healthcheck`. |
 | 2026-04-02 | §8.1: full required-secrets inventory (Git, AWS ECR, Zeabur, registries, Compose/runtime). |
 | 2026-04-02 | §8.3: Bitwarden Secrets Manager as primary secret store; free-tier notes; bootstrap + runtime/CI patterns; §10 risks. |
+| 2026-04-30 | Scope adjusted: GitHub Integration push-to-deploy is the active path; ECR private path deferred. |

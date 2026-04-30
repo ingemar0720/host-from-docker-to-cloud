@@ -64,6 +64,25 @@ make compose-up    # docker compose up in WORK_DIR
 
 Set `OPTIONAL_TOOLS=aws,zeabur` on `make check` when you want those binaries verified.
 
+## Deploy (GitHub Integration)
+
+This repository uses **Zeabur GitHub Integration** as the default deploy path.
+
+1. In Zeabur, add a service from **GitHub** and select this repo + deploy branch.
+2. Configure runtime env/secrets in Zeabur service settings.
+3. Push commits to the configured branch to trigger auto-deploy.
+4. Configure GitHub App repository allowlist and Zeabur watch paths.
+
+You can run:
+
+```bash
+make deploy ZEABUR_DEPLOY_BRANCH=main
+```
+
+to print the expected push-to-deploy behavior locally.
+
+Detailed setup (including repository allowlist path in GitHub, watch paths, and Phase 0 checklist) is in `docs/SPIKE-ZEABUR.md`.
+
 ## Examples
 
 ```bash

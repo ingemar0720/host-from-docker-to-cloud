@@ -6,6 +6,7 @@ WORK_DIR  ?= $(CURDIR)/work
 D2Z_FLAGS ?=
 GO        ?= go
 RENDER_OUT ?= $(WORK_DIR)/zeabur.generated.yaml
+ZEABUR_DEPLOY_BRANCH ?= main
 
 .PHONY: all build check analyze render test validate compose-up compose-down clone build-private push-ecr deploy
 
@@ -58,5 +59,7 @@ push-ecr:
 	aws ecr get-login-password --region "$(AWS_REGION)" | docker login --username AWS --password-stdin "$(ECR_REGISTRY)"
 
 deploy:
-	@echo "Apply Zeabur deployment (CLI/API). Generated template: $(RENDER_OUT)"
-	@command -v zeabur >/dev/null 2>&1 && zeabur version || true
+	@echo "Zeabur deploy mode: GitHub Integration (push-to-deploy)."
+	@echo "Ensure the service is linked in Zeabur: Add Service -> GitHub."
+	@echo "Push to branch '$(ZEABUR_DEPLOY_BRANCH)' to trigger deployment."
+	@echo "Generated template available for reference: $(RENDER_OUT)"
