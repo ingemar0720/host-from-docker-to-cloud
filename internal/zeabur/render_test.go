@@ -83,3 +83,37 @@ services:
 	require.NotEqual(t, -1, idxAPI)
 	require.Less(t, idxDB, idxAPI)
 }
+
+func TestRender_deploymentOrder_lexicalForIndependentServices(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "docker-compose.yml"), []byte(`
+name: lexical
+services:
+  z:
+    image: nginx:alpine
+  a:
+    image: nginx:alpine
+  m:
+    image: nginx:alpine
+`), 0o644))
+
+	p, err := composeproj.Load(context.Background(), dir, []string{"docker-compose.yml"})
+	require.NoError(t, err)
+	classes := map[string]strategy.Result{}
+	for _, n := range p.ServiceNames() {
+		classes[n] = strategy.Classify(strategy.File{}, n, p.Services[n])
+	}
+
+	var buf bytes.Buffer
+	require.NoError(t, Render(context.Background(), &buf, p, classes))
+	out := buf.String()
+
+	idxA := bytes.Index([]byte(out), []byte("name: a"))
+	idxM := bytes.Index([]byte(out), []byte("name: m"))
+	idxZ := bytes.Index([]byte(out), []byte("name: z"))
+	require.NotEqual(t, -1, idxA)
+	require.NotEqual(t, -1, idxM)
+	require.NotEqual(t, -1, idxZ)
+	require.Less(t, idxA, idxM)
+	require.Less(t, idxM, idxZ)
+}
