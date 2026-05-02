@@ -151,6 +151,8 @@ Use this sequence for the first real Zeabur validation:
 make deploy-ready WORK_DIR=examples D2Z_FLAGS='-f examples/docker-compose.yml' RENDER_OUT=/tmp/zeabur.generated.yaml
 ```
 
+If any service is classified `image-dockerhub-private`, configure Docker Hub credentials in Zeabur before pushing.
+
 5. Push a commit to `main` and wait for Zeabur deploy to start.
 6. Capture logs and fill the fields below.
 

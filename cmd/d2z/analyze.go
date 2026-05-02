@@ -49,9 +49,13 @@ func runAnalyze(ctx context.Context, args []string) error {
 	}
 	fmt.Println()
 
+	privateImageServices := make([]string, 0)
 	for _, name := range order {
 		svc := proj.Services[name]
 		r := strategy.Classify(sf, name, svc)
+		if r.Kind == strategy.ImageDockerHubPrivate {
+			privateImageServices = append(privateImageServices, name)
+		}
 		fmt.Printf("service %q\n", name)
 		fmt.Printf("  classification: %s (%s)\n", r.Kind, r.Reason)
 		if svc.Image != "" {
@@ -91,6 +95,12 @@ func runAnalyze(ctx context.Context, args []string) error {
 			fmt.Println()
 		}
 		fmt.Println()
+	}
+
+	if len(privateImageServices) > 0 {
+		sort.Strings(privateImageServices)
+		fmt.Println("requirements:")
+		fmt.Printf("  - configure Docker Hub credentials in Zeabur for private image services: %s\n", strings.Join(privateImageServices, ", "))
 	}
 	return nil
 }
