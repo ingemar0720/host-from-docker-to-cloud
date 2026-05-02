@@ -30,7 +30,6 @@ func (r *Result) Error() string {
 
 // Options toggles optional tools.
 type Options struct {
-	CheckAWS    bool
 	CheckZeabur bool
 	CheckHelm   bool
 	CheckBW     bool
@@ -42,9 +41,6 @@ func Run(opt Options) Result {
 	requireTool(&r, "git", "git --version")
 	requireTool(&r, "docker", "docker version")
 	requireDockerCompose(&r)
-	if opt.CheckAWS {
-		requireTool(&r, "aws", "aws --version")
-	}
 	if opt.CheckZeabur {
 		requireTool(&r, "zeabur", "zeabur version")
 	}

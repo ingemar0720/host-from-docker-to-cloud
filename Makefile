@@ -1,4 +1,4 @@
-# See PLAN.md. Variables: WORK_DIR, D2Z_FLAGS (e.g. -f docker-compose.yml -strategy zeabur.strategy.yaml), REPO_URL, ECR_REGISTRY, AWS_REGION.
+# See PLAN.md. Variables: WORK_DIR, D2Z_FLAGS (e.g. -f docker-compose.yml -strategy zeabur.strategy.yaml), REPO_URL.
 
 D2Z       ?= $(CURDIR)/bin/d2z
 WORK_DIR  ?= $(CURDIR)/work
@@ -8,7 +8,7 @@ GO        ?= go
 RENDER_OUT ?= $(WORK_DIR)/zeabur.generated.yaml
 ZEABUR_DEPLOY_BRANCH ?= main
 
-.PHONY: all build check analyze render test validate compose-up compose-down clone build-private push-ecr deploy-ready deploy
+.PHONY: all build check analyze render test validate compose-up compose-down clone deploy-ready deploy
 
 all: build
 
@@ -46,17 +46,6 @@ clone:
 	@test -n "$(REPO_URL)" || (echo "Set REPO_URL"; exit 1)
 	@test -n "$(WORK_DIR)" || (echo "Set WORK_DIR"; exit 1)
 	$(D2Z) clone -repo "$(REPO_URL)" -dir "$(WORK_DIR)"
-
-build-private:
-	@test -n "$(ECR_REGISTRY)" || (echo "Set ECR_REGISTRY"; exit 1)
-	@test -n "$(PRIVATE_SERVICES)" || (echo "Set PRIVATE_SERVICES (space-separated service names)"; exit 1)
-	docker compose -f "$(WORK_DIR)/$(COMPOSE_FILE)" --project-directory "$(WORK_DIR)" build $(PRIVATE_SERVICES)
-	@echo "Tag images for $(ECR_REGISTRY) and docker push (see push-ecr)."
-
-push-ecr:
-	@test -n "$(AWS_REGION)" || (echo "Set AWS_REGION"; exit 1)
-	@test -n "$(ECR_REGISTRY)" || (echo "Set ECR_REGISTRY"; exit 1)
-	aws ecr get-login-password --region "$(AWS_REGION)" | docker login --username AWS --password-stdin "$(ECR_REGISTRY)"
 
 deploy-ready: validate check analyze render
 	@echo "Local pre-deploy checks passed."

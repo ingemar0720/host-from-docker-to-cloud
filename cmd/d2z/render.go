@@ -27,7 +27,7 @@ func runRender(ctx context.Context, args []string) error {
 		if err != nil {
 			return err
 		}
-		if len(def.Services) > 0 || def.ECR.Registry != "" {
+		if len(def.Services) > 0 {
 			sf = def
 		}
 	}

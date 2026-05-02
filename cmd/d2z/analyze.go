@@ -4,8 +4,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"sort"
+	"strings"
 
+	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/ingemar0720/host-from-docker-to-cloud/internal/composeproj"
+	"github.com/ingemar0720/host-from-docker-to-cloud/internal/deployplan"
 	"github.com/ingemar0720/host-from-docker-to-cloud/internal/strategy"
 )
 
@@ -25,7 +29,7 @@ func runAnalyze(ctx context.Context, args []string) error {
 		if err != nil {
 			return err
 		}
-		if len(def.Services) > 0 || def.ECR.Registry != "" {
+		if len(def.Services) > 0 {
 			sf = def
 		}
 	}
@@ -33,8 +37,19 @@ func runAnalyze(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
+	order, err := deployplan.Order(proj)
+	if err != nil {
+		return err
+	}
+
 	fmt.Printf("project: %q  workdir: %s\n\n", proj.Name, proj.WorkingDir)
-	for _, name := range proj.ServiceNames() {
+	fmt.Println("deployment order:")
+	for i, name := range order {
+		fmt.Printf("  %d. %s\n", i+1, name)
+	}
+	fmt.Println()
+
+	for _, name := range order {
 		svc := proj.Services[name]
 		r := strategy.Classify(sf, name, svc)
 		fmt.Printf("service %q\n", name)
@@ -47,10 +62,16 @@ func runAnalyze(ctx context.Context, args []string) error {
 		}
 		if len(svc.DependsOn) > 0 {
 			fmt.Printf("  depends_on:\n")
-			for dep, d := range svc.DependsOn {
-				cond := d.Condition
+			deps := make([]string, 0, len(svc.DependsOn))
+			for dep := range svc.DependsOn {
+				deps = append(deps, dep)
+			}
+			sort.Strings(deps)
+			for _, dep := range deps {
+				d := svc.DependsOn[dep]
+				cond := strings.TrimSpace(d.Condition)
 				if cond == "" {
-					cond = "(default service_started)"
+					cond = types.ServiceConditionStarted
 				}
 				fmt.Printf("    - %s: condition=%q required=%v\n", dep, cond, d.Required)
 			}

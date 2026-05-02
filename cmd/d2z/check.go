@@ -14,17 +14,17 @@ func runCheck(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("check", flag.ContinueOnError)
 	var cf commonFlags
 	var optional string
-	fs.StringVar(&optional, "optional", "", "comma-separated optional tools to verify: aws,zeabur,helm,bw")
+	fs.StringVar(&optional, "optional", "", "comma-separated optional tools to verify: zeabur,helm,bw")
 	parseCommon(fs, &cf)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	aws, zb, helm, bw, err := parseOptionalTools(optional)
+	zb, helm, bw, err := parseOptionalTools(optional)
 	if err != nil {
 		return err
 	}
 	pre := precheck.Run(precheck.Options{
-		CheckAWS: aws, CheckZeabur: zb, CheckHelm: helm, CheckBW: bw,
+		CheckZeabur: zb, CheckHelm: helm, CheckBW: bw,
 	})
 	files := resolveCompose(&cf)
 	for _, f := range files {

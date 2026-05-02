@@ -10,16 +10,17 @@ import (
 	"github.com/compose-spec/compose-go/v2/types"
 	"gopkg.in/yaml.v3"
 
+	"github.com/ingemar0720/host-from-docker-to-cloud/internal/deployplan"
 	"github.com/ingemar0720/host-from-docker-to-cloud/internal/strategy"
 )
 
 // Document is a best-effort Zeabur-oriented template. Confirm against current Zeabur docs before applying.
 type Document struct {
-	APIVersion string          `yaml:"apiVersion"`
-	Kind       string          `yaml:"kind"`
-	Metadata   Metadata        `yaml:"metadata"`
-	Spec       ProjectSpec     `yaml:"spec"`
-	Comments   []string        `yaml:"-"`
+	APIVersion string      `yaml:"apiVersion"`
+	Kind       string      `yaml:"kind"`
+	Metadata   Metadata    `yaml:"metadata"`
+	Spec       ProjectSpec `yaml:"spec"`
+	Comments   []string    `yaml:"-"`
 }
 
 type Metadata struct {
@@ -72,7 +73,9 @@ type HealthSpec struct {
 
 // Render writes a YAML document derived from the project and strategy classification.
 func Render(ctx context.Context, out io.Writer, project *types.Project, classes map[string]strategy.Result) error {
-	order, err := dependencyOrder(ctx, project)
+	_ = ctx // reserved for future cancellation-aware planners
+
+	order, err := deployplan.Order(project)
 	if err != nil {
 		return err
 	}
@@ -97,10 +100,10 @@ func Render(ctx context.Context, out io.Writer, project *types.Project, classes 
 		svc := project.Services[name]
 		cl := classes[name]
 		ss := ServiceSpec{
-			Name:           name,
-			Classification: string(cl.Kind),
-			Image:          svc.Image,
-			Environment:    envToMap(svc.Environment),
+			Name:            name,
+			Classification:  string(cl.Kind),
+			Image:           svc.Image,
+			Environment:     envToMap(svc.Environment),
 			DeploymentOrder: orderRank[name],
 		}
 		if svc.Build != nil {
@@ -157,71 +160,10 @@ func deploymentNotes(svc types.ServiceConfig, cl strategy.Result) []string {
 	if len(svc.Secrets) > 0 {
 		n = append(n, "Compose secrets: map to Bitwarden Secrets Manager or Zeabur env (see PLAN.md §8).")
 	}
-	if cl.Kind == strategy.PrivateBuildECR || cl.Kind == strategy.PrivateImage {
-		n = append(n, "Private path: configure ECR + Zeabur registry credentials; use make push-ecr where applicable.")
+	if cl.Kind == strategy.ImageDockerHubPrivate {
+		n = append(n, "Private image path: configure Docker Hub credentials in Zeabur container registry settings.")
 	}
 	return n
-}
-
-func dependencyOrder(ctx context.Context, project *types.Project) ([]string, error) {
-	_ = ctx // reserved for future cancellation-aware planners
-
-	names := project.ServiceNames()
-	sort.Strings(names)
-
-	indegree := make(map[string]int, len(names))
-	dependents := make(map[string][]string, len(names))
-	for _, name := range names {
-		indegree[name] = 0
-	}
-
-	for _, name := range names {
-		svc := project.Services[name]
-		deps := make([]string, 0, len(svc.DependsOn))
-		for dep := range svc.DependsOn {
-			deps = append(deps, dep)
-		}
-		sort.Strings(deps)
-		for _, dep := range deps {
-			if _, ok := indegree[dep]; !ok {
-				continue
-			}
-			indegree[name]++
-			dependents[dep] = append(dependents[dep], name)
-		}
-	}
-
-	ready := make([]string, 0, len(names))
-	for _, name := range names {
-		if indegree[name] == 0 {
-			ready = append(ready, name)
-		}
-	}
-	sort.Strings(ready)
-
-	order := make([]string, 0, len(names))
-	for len(ready) > 0 {
-		name := ready[0]
-		ready = ready[1:]
-		order = append(order, name)
-
-		ds := dependents[name]
-		sort.Strings(ds)
-		for _, d := range ds {
-			indegree[d]--
-			if indegree[d] == 0 {
-				i := sort.SearchStrings(ready, d)
-				ready = append(ready, "")
-				copy(ready[i+1:], ready[i:])
-				ready[i] = d
-			}
-		}
-	}
-
-	if len(order) != len(names) {
-		return nil, fmt.Errorf("dependency planner: cycle detected in services")
-	}
-	return order, nil
 }
 
 func envToMap(e types.MappingWithEquals) map[string]string {

@@ -10,10 +10,9 @@ import (
 type Kind string
 
 const (
-	PrebuiltPublic  Kind = "prebuilt-public"
-	BuildLocal      Kind = "build-local"
-	PrivateImage    Kind = "private-image"
-	PrivateBuildECR Kind = "private-build-ecr"
+	BuildFromSource       Kind = "build-from-source"
+	ImageDockerHubPublic  Kind = "image-dockerhub-public"
+	ImageDockerHubPrivate Kind = "image-dockerhub-private"
 )
 
 // Result is per-service classification with rationale.
@@ -45,16 +44,12 @@ func Classify(sf File, name string, svc types.ServiceConfig) Result {
 	hasBuild := svc.Build != nil
 
 	switch rule {
-	case "private":
-		if hasBuild {
-			return Result{name, PrivateBuildECR, "strategy/label: sourcing=private with build → push to ECR"}
-		}
-		return Result{name, PrivateImage, "strategy/label: sourcing=private with image → use private registry / ECR pull"}
-	case "public":
-		if hasBuild {
-			return Result{name, BuildLocal, "strategy/label: sourcing=public with build → build from Dockerfile"}
-		}
-		return Result{name, PrebuiltPublic, "strategy/label: sourcing=public → prebuilt image"}
+	case "build", "source":
+		return Result{name, BuildFromSource, "strategy/label: sourcing=build → build from Dockerfile"}
+	case "image-public", "public":
+		return Result{name, ImageDockerHubPublic, "strategy/label: sourcing=image-public → pull public image"}
+	case "image-private", "private":
+		return Result{name, ImageDockerHubPrivate, "strategy/label: sourcing=image-private → pull private Docker Hub image"}
 	case "auto", "":
 		return classifyAuto(name, img, hasBuild)
 	default:
@@ -65,50 +60,11 @@ func Classify(sf File, name string, svc types.ServiceConfig) Result {
 }
 
 func classifyAuto(name, image string, hasBuild bool) Result {
-	if hasBuild && isLikelyPrivateBuild(image) {
-		return Result{name, PrivateBuildECR, "build context + private-style image reference"}
-	}
 	if hasBuild {
-		return Result{name, BuildLocal, "build: set, no public-only image"}
+		return Result{name, BuildFromSource, "build: set → build from source"}
 	}
 	if image == "" {
-		return Result{name, BuildLocal, "no image; build assumed"}
+		return Result{name, BuildFromSource, "no image; build assumed"}
 	}
-	if isPrivateRegistryImage(image) {
-		return Result{name, PrivateImage, "image host looks private (ECR/custom registry)"}
-	}
-	return Result{name, PrebuiltPublic, "image from public-style reference"}
-}
-
-func isPrivateRegistryImage(image string) bool {
-	l := strings.ToLower(image)
-	switch {
-	case strings.Contains(l, ".dkr.ecr.") && strings.Contains(l, ".amazonaws.com"):
-		return true
-	case strings.HasPrefix(l, "localhost"), strings.HasPrefix(l, "127.0.0.1"):
-		return true
-	case strings.Contains(l, ":5000/"):
-		return true
-	case strings.HasPrefix(l, "gcr.io/"), strings.HasPrefix(l, "asia.gcr.io/"), strings.HasPrefix(l, "eu.gcr.io/"), strings.HasPrefix(l, "us.gcr.io/"):
-		// Could be public; treat as org registry — user overrides with label.
-		return false
-	case strings.HasPrefix(l, "ghcr.io/"):
-		return false
-	default:
-		// Host:port/repo without docker.io
-		if idx := strings.Index(l, "/"); idx > 0 {
-			host := l[:idx]
-			if strings.Contains(host, ".") && !strings.Contains(host, "docker.io") {
-				// e.g. registry.example.com/myimg
-				if !strings.HasSuffix(host, "docker.io") && host != "docker.io" {
-					return true
-				}
-			}
-		}
-		return false
-	}
-}
-
-func isLikelyPrivateBuild(image string) bool {
-	return image != "" && isPrivateRegistryImage(image)
+	return Result{name, ImageDockerHubPublic, "image set; assumed public unless overridden to image-private"}
 }

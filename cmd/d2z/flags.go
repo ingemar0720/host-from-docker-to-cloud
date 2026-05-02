@@ -42,11 +42,9 @@ func splitEnvList(s string) []string {
 	return out
 }
 
-func parseOptionalTools(s string) (aws, zeabur, helm, bw bool, err error) {
+func parseOptionalTools(s string) (zeabur, helm, bw bool, err error) {
 	for _, p := range splitEnvList(s) {
 		switch strings.ToLower(p) {
-		case "aws":
-			aws = true
 		case "zeabur":
 			zeabur = true
 		case "helm":
@@ -54,8 +52,8 @@ func parseOptionalTools(s string) (aws, zeabur, helm, bw bool, err error) {
 		case "bw", "bitwarden":
 			bw = true
 		default:
-			return false, false, false, false, fmt.Errorf("unknown optional tool %q (use aws,zeabur,helm,bw)", p)
+			return false, false, false, fmt.Errorf("unknown optional tool %q (use zeabur,helm,bw)", p)
 		}
 	}
-	return aws, zeabur, helm, bw, nil
+	return zeabur, helm, bw, nil
 }

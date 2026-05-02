@@ -1,7 +1,4 @@
-# Optional overrides for classification (auto | public | private per service).
+# Optional overrides for classification (auto | build | image-public | image-private per service).
 services:
   api:
-    sourcing: public
-ecr:
-  registry: ""
-  repository_prefix: ""
+    sourcing: build

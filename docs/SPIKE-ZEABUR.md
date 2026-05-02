@@ -3,8 +3,6 @@
 This is the single deployment runbook for this repository.
 Current scope is intentionally narrow: deploy this repo to Zeabur via GitHub Integration.
 
-ECR private-image flow is explicitly deferred.
-
 References:
 
 - https://zeabur.com/docs/en-US/deploy/methods/github-integration
@@ -28,7 +26,6 @@ In scope now:
 
 Out of scope now:
 
-- ECR private image path (deferred)
 - Full production hardening and full compatibility matrix
 - Full Bitwarden runtime integration design
 
@@ -82,15 +79,16 @@ make deploy-ready WORK_DIR=examples D2Z_FLAGS='-f examples/docker-compose.yml' R
 - [x] `make deploy-ready` passes with Docker daemon running.
 - [x] `d2z check` passes (tools + compose load + no dependency cycles).
 - [x] `d2z analyze` confirms:
-  - `api` classified as `build-local`, depends on `db` with `condition=service_healthy`.
-  - `db` classified as `prebuilt-public` (`postgres:16-alpine`) with healthcheck.
+  - Deployment order is deterministic with lexical tie-break (`db` before `api` in current example).
+  - `api` classified as `build-from-source`, depends on `db` with `condition=service_healthy`.
+  - `db` classified as `image-dockerhub-public` (`postgres:16-alpine`) with healthcheck.
 - [x] `d2z render` writes output to `/tmp/zeabur.generated.yaml`.
 
 ## Validation Matrix (Current Scope)
 
 ### A) Public image path
 
-Target: service uses public `image:` and no private registry auth.
+Target: service uses public `image:`.
 
 - [ ] Deploy succeeds from push
 - [ ] Service starts successfully
@@ -115,10 +113,6 @@ Notes:
 
 - Build context and args:
 - Divergence from local compose behavior:
-
-### C) Private image via ECR path (Deferred)
-
-Not part of this spike. Track as follow-up after GitHub Integration baseline is stable.
 
 ## Dependency and Health Behavior
 
@@ -181,8 +175,6 @@ Record this after the push:
 - Watch paths (baseline to configure): `cmd/**`, `internal/**`, `go.mod`, `go.sum`, `Dockerfile*`, `docker-compose*.yml`
 - Health/readiness policy:
 - Bitwarden pattern decision (if needed):
-- Deferred items:
-  - ECR private-image path
 
 ## Exit Criteria
 
@@ -192,4 +184,3 @@ Phase 0 is complete when all are true:
 - [ ] Push to deploy branch triggers Zeabur deploy reliably
 - [ ] Public image and local build paths are validated
 - [ ] Dependency/health behavior notes are captured
-- [ ] Follow-up backlog (including ECR) is explicit

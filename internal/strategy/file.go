@@ -11,16 +11,10 @@ import (
 // File is optional zeabur.strategy.yaml (or path passed with -strategy).
 type File struct {
 	Services map[string]ServiceRule `yaml:"services"`
-	ECR      ECRDefaults            `yaml:"ecr"`
 }
 
 type ServiceRule struct {
-	Sourcing string `yaml:"sourcing"` // auto | public | private
-}
-
-type ECRDefaults struct {
-	Registry        string `yaml:"registry"`
-	RepositoryPrefix string `yaml:"repository_prefix"`
+	Sourcing string `yaml:"sourcing"` // auto | build | image-public | image-private
 }
 
 // LoadStrategyFile reads YAML from path. A non-empty path must refer to an existing file.
