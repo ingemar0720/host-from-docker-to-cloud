@@ -1,6 +1,6 @@
 # host-from-docker-to-cloud
 
-CLI and Makefile helpers to validate **Docker Compose** projects, classify services (public image vs local build vs private/ECR), analyze **`depends_on`** / **`healthcheck`**, and emit **Zeabur-oriented** YAML. See **PLAN.md** for full design, secrets (including Bitwarden), and phases.
+CLI and Makefile helpers to validate **Docker Compose** projects, classify services (build-from-source vs Docker Hub public/private image), analyze **`depends_on`** / **`healthcheck`**, and emit **Zeabur-oriented** YAML. See **PLAN.md** for full design, secrets (including Bitwarden), and phases.
 
 ## Name: `d2z`
 
@@ -34,6 +34,7 @@ make build
 ```
 
 `d2z check` verifies `git`, **Docker**, **`docker compose`**, loads your compose file(s), and fails on **`depends_on` cycles**.
+`d2z analyze` prints a deterministic deployment order (dependencies first, lexical tie-breaks) plus per-service classification and readiness-related metadata.
 
 ## Build
 
@@ -45,7 +46,7 @@ make test     # go test ./... (no rebuild)
 ## CLI
 
 ```bash
-./bin/d2z check   -workdir /path/to/repo [-f compose.yml] [-optional aws,zeabur,helm,bw]
+./bin/d2z check   -workdir /path/to/repo [-f compose.yml] [-optional zeabur,helm,bw]
 ./bin/d2z analyze -workdir /path/to/repo [-f compose.yml] [-strategy zeabur.strategy.yaml]
 ./bin/d2z render  -workdir /path/to/repo [-f compose.yml] -out zeabur.generated.yaml
 ./bin/d2z clone   -repo "$REPO_URL" -dir "$WORK_DIR"
@@ -62,7 +63,7 @@ make check analyze render
 make compose-up    # docker compose up in WORK_DIR
 ```
 
-Set `OPTIONAL_TOOLS=aws,zeabur` on `make check` when you want those binaries verified.
+Set `OPTIONAL_TOOLS=zeabur,helm,bw` on `make check` when you want those binaries verified.
 
 ## Deploy (GitHub Integration)
 
