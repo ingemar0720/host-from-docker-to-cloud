@@ -75,6 +75,12 @@ Before pushing, run local pre-deploy checks:
 make deploy-ready WORK_DIR=examples D2Z_FLAGS='-f examples/docker-compose.yml' RENDER_OUT=/tmp/zeabur.generated.yaml
 ```
 
+Shortcut for the bundled example stack:
+
+```bash
+make example-deploy-ready
+```
+
 1. In Zeabur, add a service from **GitHub** and select this repo + deploy branch.
 2. Configure runtime env/secrets in Zeabur service settings.
 3. Push commits to the configured branch to trigger auto-deploy.

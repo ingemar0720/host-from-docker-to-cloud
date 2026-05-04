@@ -35,6 +35,9 @@ test:
 	$(GO) test ./...
 
 COMPOSE_FILE ?= docker-compose.yml
+EXAMPLE_WORK_DIR ?= examples
+EXAMPLE_COMPOSE_FILE ?= examples/docker-compose.yml
+EXAMPLE_RENDER_OUT ?= /tmp/zeabur.generated.yaml
 
 compose-up: build
 	docker compose -f "$(WORK_DIR)/$(COMPOSE_FILE)" --project-directory "$(WORK_DIR)" up -d
@@ -50,6 +53,12 @@ clone:
 deploy-ready: validate check analyze render
 	@echo "Local pre-deploy checks passed."
 	@echo "Push to branch '$(ZEABUR_DEPLOY_BRANCH)' to trigger Zeabur deploy."
+
+example-deploy-ready:
+	$(MAKE) deploy-ready \
+		WORK_DIR="$(EXAMPLE_WORK_DIR)" \
+		D2Z_FLAGS="-f $(EXAMPLE_COMPOSE_FILE)" \
+		RENDER_OUT="$(EXAMPLE_RENDER_OUT)"
 
 deploy:
 	@echo "Zeabur deploy mode: GitHub Integration (push-to-deploy)."
