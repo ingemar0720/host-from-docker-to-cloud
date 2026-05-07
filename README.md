@@ -69,22 +69,23 @@ Set `OPTIONAL_TOOLS=zeabur,helm,bw` on `make check` when you want those binaries
 
 This repository uses **Zeabur GitHub Integration** as the default deploy path.
 
-Before pushing, run local pre-deploy checks:
-
-```bash
-make deploy-ready WORK_DIR=examples D2Z_FLAGS='-f examples/docker-compose.yml' RENDER_OUT=/tmp/zeabur.generated.yaml
-```
-
-Shortcut for the bundled example stack:
+Quick path:
 
 ```bash
 make example-deploy-ready
+git push -u origin main
 ```
 
 1. In Zeabur, add a service from **GitHub** and select this repo + deploy branch.
 2. Configure runtime env/secrets in Zeabur service settings.
 3. Push commits to the configured branch to trigger auto-deploy.
 4. Configure GitHub App repository allowlist and Zeabur watch paths.
+
+For first-run validation, only record:
+- Zeabur deploy URL/ID
+- Build status
+- Runtime status
+- Service URL (if any)
 
 You can run:
 

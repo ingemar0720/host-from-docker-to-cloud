@@ -84,61 +84,7 @@ make deploy-ready WORK_DIR=examples D2Z_FLAGS='-f examples/docker-compose.yml' R
   - `db` classified as `image-dockerhub-public` (`postgres:16-alpine`) with healthcheck.
 - [x] `d2z render` writes output to `/tmp/zeabur.generated.yaml`.
 
-## Validation Matrix (Current Scope)
-
-### A) Public image path
-
-Target: service uses public `image:`.
-
-- [ ] Deploy succeeds from push
-- [ ] Service starts successfully
-- [ ] Health/readiness checks behave as expected
-- [ ] Route/port is reachable
-
-Notes:
-
-- Deploy branch:
-- Zeabur service name:
-- Observed behavior:
-
-### B) Local build path
-
-Target: service uses `build:` in Compose.
-
-- [ ] Zeabur build succeeds from push
-- [ ] Runtime behavior matches local expectation
-- [ ] Health/readiness checks behave as expected
-
-Notes:
-
-- Build context and args:
-- Divergence from local compose behavior:
-
-## Dependency and Health Behavior
-
-Capture how `depends_on` plus `healthcheck` can be represented in deployment behavior:
-
-- [ ] Dependency-first creation order is preserved where possible
-- [ ] Supported health probe types are documented
-- [ ] Any gap/workaround is documented
-
-Findings:
-
-- Supported probes (tooling-level): command-style healthcheck (`CMD-SHELL`) and `service_healthy` dependency intent are parsed and rendered.
-- Unsupported probes: pending Zeabur runtime confirmation during push-triggered deploy.
-- Workaround: if a probe mapping gap is found in Zeabur, keep dependency order and require app-level retries.
-
-## Evidence Checklist
-
-Attach links, screenshots, or outputs for:
-
-- [ ] Successful push-triggered deploy (public image)
-- [ ] Successful push-triggered deploy (local build)
-- [ ] Branch and watch-path config screenshot/notes
-- [ ] Health/readiness observation
-- [ ] Final generated Zeabur YAML sample used for reference
-
-## First Push Test (Execute Now)
+## First Push Test (Lightweight)
 
 Use this sequence for the first real Zeabur validation:
 
@@ -154,21 +100,13 @@ make deploy-ready WORK_DIR=examples D2Z_FLAGS='-f examples/docker-compose.yml' R
 If any service is classified `image-dockerhub-private`, configure Docker Hub credentials in Zeabur before pushing.
 
 5. Push a commit to `main` and wait for Zeabur deploy to start.
-6. Capture logs and fill the fields below.
+6. Capture only:
 
-Suggested commit message for deploy trigger:
-
-`chore: trigger first zeabur github-integration deploy test`
-
-Record this after the push:
-
-- Commit SHA:
-- Push time (local timezone):
-- Zeabur deploy ID / URL:
-- Build status (pass/fail):
-- Runtime status (healthy/unhealthy):
-- Service URL:
-- Notes:
+- Zeabur deploy ID / URL
+- Build status
+- Runtime status
+- Service URL
+- Error log snippet (only if failed)
 
 ## Decisions for Next Phase
 
@@ -184,5 +122,4 @@ Phase 0 is complete when all are true:
 
 - [ ] GitHub App allowlist is configured for this repo
 - [ ] Push to deploy branch triggers Zeabur deploy reliably
-- [ ] Public image and local build paths are validated
-- [ ] Dependency/health behavior notes are captured
+- [ ] Build and runtime become healthy on Zeabur
