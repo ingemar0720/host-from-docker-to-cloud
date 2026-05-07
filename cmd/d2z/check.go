@@ -8,6 +8,7 @@ import (
 
 	"github.com/ingemar0720/host-from-docker-to-cloud/internal/composeproj"
 	"github.com/ingemar0720/host-from-docker-to-cloud/internal/precheck"
+	"github.com/ingemar0720/host-from-docker-to-cloud/internal/sourcemode"
 )
 
 func runCheck(ctx context.Context, args []string) error {
@@ -32,12 +33,17 @@ func runCheck(ctx context.Context, args []string) error {
 			pre.Issues = append(pre.Issues, precheck.Issue{Name: "compose file", Detail: fmt.Sprintf("%s: %v", f, err)})
 		}
 	}
-	if _, err := composeproj.Load(ctx, cf.Workdir, files); err != nil {
+	proj, err := composeproj.Load(ctx, cf.Workdir, files)
+	if err != nil {
 		pre.Issues = append(pre.Issues, precheck.Issue{Name: "compose load", Detail: err.Error()})
+	} else {
+		for _, vErr := range sourcemode.Validate(proj) {
+			pre.Issues = append(pre.Issues, precheck.Issue{Name: "source mode", Detail: vErr.Error()})
+		}
 	}
 	if !pre.OK() {
 		return fmt.Errorf("check failed:\n%s", pre.Error())
 	}
-	fmt.Println("d2z check: ok (tools + compose load + no depends_on cycles)")
+	fmt.Println("d2z check: ok (tools + compose load + no depends_on cycles + explicit source mode)")
 	return nil
 }

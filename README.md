@@ -34,6 +34,7 @@ make build
 ```
 
 `d2z check` verifies `git`, **Docker**, **`docker compose`**, loads your compose file(s), and fails on **`depends_on` cycles**.
+`d2z check` also enforces explicit source mode per service: exactly one of `build` or `image`.
 `d2z analyze` prints a deterministic deployment order (dependencies first, lexical tie-breaks), per-service classification/readiness metadata, and explicit credential requirements when services are marked `image-dockerhub-private`.
 
 ## Build

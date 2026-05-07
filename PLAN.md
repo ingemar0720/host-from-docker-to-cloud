@@ -104,7 +104,9 @@ Use two axes:
 | `image:` and no `build:` + public Docker Hub access | `image-dockerhub-public` |
 | `image:` and no `build:` + private Docker Hub repo | `image-dockerhub-private` |
 
-Override file (recommended): `zeabur.strategy.yaml` or labels (for example `zeabur.sourcing: prebuilt|build|auto`) so edge cases are explicit.
+Enforcement: `make check` / `d2z check` fails when a service defines both `build` and `image`, or neither.
+
+Override file (recommended): `zeabur.strategy.yaml` or labels (for example `zeabur.sourcing: build|image-public|image-private|auto`) so edge cases are explicit.
 
 ---
 
